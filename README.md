@@ -9,7 +9,7 @@ The Workshop is organised by the National Archives’ research team on the 20th 
 ## Copyright and Licencing of this repository
 One of aim of the workshop is to publish a white paper based on the data exploration and discussions taken place in the working groups and open discussion. This work will be published under Open Government Licence (OGL) (for more on OGL terms please visit: http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/), with the overall piece to be issued as Crown Copyright except where otherwise indicated. Follow as on tweeter @UkNatArcRes or keep updated with the network’s news via the website of the network.
 
-Any collaborative work (code or other research outcomes) that appears in this repository is also under Open Government Licence terms and all participants are credited for their contribution.
+Any collaborative work (code or other research outcomes) that appears in this repository is also under OGL terms and all participants are credited for their contribution.
 
 ## Working Groups (Participants, methods and datasets)
 To be added soon
