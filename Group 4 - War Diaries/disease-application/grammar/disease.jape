@@ -1,0 +1,10 @@
+Phase: Disease
+Input: Lookup Token
+Options: control = appelt
+
+Rule: Disease
+(
+	{Lookup.majorType == "disease", Token.orth != "allCaps", Token.category ==~ "NN.*"}
+):lookup
+-->
+:lookup.Disease = {}

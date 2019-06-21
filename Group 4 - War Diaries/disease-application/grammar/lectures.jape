@@ -1,0 +1,15 @@
+Phase: Lectures
+Input: Token Disease Split
+Options: control = appelt
+
+Rule: Disease
+(
+	{Token.string ==~ "(?i)lectures?"}
+	({Token})[0,5]
+	({Disease}):disease
+):lecture
+-->
+:lecture.Lecture = {disease = :disease.Disease@string},
+:disease {
+	inputAS.removeAll(diseaseAnnots);
+}
