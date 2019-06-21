@@ -1,6 +1,6 @@
 # Disease Tracking
 
-A simple [GATE](http://gate.ac.u) based application that aims to annotate diseases mentiones within th transcribed War Diaries.
+A simple [GATE](http://gate.ac.uk) based application that aims to annotate diseases mentiones within th transcribed War Diaries.
 
 The application currently uses a list of diseases based on UMLS entries (T047) and tries to differentiate between mentions of the disease appearing within troops from those where they are being given information (often in the form of a lecture) on a disease.
 
