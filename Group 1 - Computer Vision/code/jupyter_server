@@ -1,0 +1,5 @@
+#!/bin/bash
+ip_address=$(hostname -I | cut -d ' ' -f 1)
+echo "Starting jupyter server at  http://$ip_address:9999"
+echo "Done. Don't forget to kill the process after you finish."
+jupyter notebook --no-browser --ip=0.0.0.0 --port=9999
