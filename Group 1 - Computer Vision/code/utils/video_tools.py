@@ -38,22 +38,19 @@ import math
 import pandas as pd
 import errno
 from sklearn.decomposition import PCA
-from pycluster import pycluster
 import json
 from concurrent import futures
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from python_speech_features import mfcc, logfbank
 ### deep learning import ###
-from keras import backend as K
-from keras.models import Model
-import keras.applications as apps
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Model
+import tensorflow.keras.applications as apps
 #from keras.applications.inception_resnet_v2 import InceptionResNetV2,preprocess_input#, decode_predictions
 import numpy as np
-from DataGenerator import VideoData2 as VideoData
-#from DataGenerator import AEDataGenerator
-import model_def
-from helper import float2hex, makeNewDir
+from .video_reader import VideoData2 as VideoData
+from .helper import float2hex, make_new_dir
 from multiprocessing import Pool
 
 def locateExe(exe_name):
@@ -135,7 +132,7 @@ def genTrainList(cluster_list, feat_list, out_dir):
   also generate a train_info.txt containing overall info"""
   cluster_ = pd.read_csv(cluster_list) #for original clip id and cluster id
   feat_ = pd.read_csv(feat_list) #extracted feat for aug clips, input to training
-  makeNewDir(out_dir, False)
+  make_new_dir(out_dir, False)
   aux = []
   allclusters = list(set(cluster_['cluster_id']))
   allclusters = [i for i in allclusters if i!=-1]
@@ -162,7 +159,7 @@ def genTrainList_audio(feat_list, out_dir):
   """
   simplified version of genTrainList for audio
   """
-  makeNewDir(out_dir, False)
+  make_new_dir(out_dir, False)
   list_a = pd.read_csv(feat_list)
   out_ = pd.DataFrame(columns=['path', 'label', 'length'])
   out_['path'] = list_a['path'].tolist()
@@ -178,53 +175,11 @@ def genTrainList_audio(feat_list, out_dir):
     json.dump(aux, fout, indent=4)
   return aux
 
-# =============================================================================
-# def videoChop(filename, timestamps, out_dir, include_audio=False, out_dir_audio = None, extra="", **kwargs):
-#   """split videos given list of timestamps"""
-#   split_cmd = "ffmpeg -i '%s' -y -c:v h264" % (filename)
-#   if include_audio:
-#     split_cmd += " -c:a wav " #loss less audio
-#     out_dir_a = out_dir if out_dir_audio is None else out_dir_audio
-#   try:
-#     fileext = filename.split(".")[-1]
-#   except IndexError as e:
-#     raise IndexError("No . in filename. Error: " + str(e))
-#   split_points = timestamps
-#   count = 0
-#   split_list = pd.DataFrame(columns = ['clip_id','start','end','path'])
-#   for i in range(len(split_points)-1):
-#     split_str = " -filter_complex "
-#     split_start = split_points[i] + 0.05
-#     split_end = split_points[i+1] - 0.05
-#     if split_end - split_start > 1:
-#       filebase = 'p' + str(count) + "." + fileext
-#       out_path = os.path.join(out_dir,filebase)
-#       if include_audio:
-#         filebase_a = 'p' + str(count) + ".wav"
-#         out_path_a = os.path.join(out_dir_a, filebase_a)
-#         split_str += ("'[0:v]trim={}:end={},setpts=PTS-STARTPTS[vout];" 
-#                       "[0:a]atrim={}:end={},asetpts=PTS-STARTPTS,pan=mono|c0=.5*c0+.5*c1[aout]'" 
-#                       " -map [vout] '{}' -map [aout] '{}'").format(
-#             split_start,split_end,split_start, split_end, out_path,out_path_a)
-#       else:
-#         split_str += "'[0:v]trim={}:end={},setpts=PTS-STARTPTS[vout]' -map [vout] '{}'".format(
-#           split_start,split_end,out_path)
-#       
-#       cmd = split_cmd + split_str
-#       print "About to run: "+cmd
-#       exitcode,out,err = runExternal(cmd)
-#       assert exitcode == 0, 'Error! external command fail.\n{}-{}'.format(out, err)
-#       split_list.loc[count] = [count, split_start, split_end, filebase]
-#       count += 1
-#       
-#   return split_list
-# =============================================================================
-
 def videoChop(filename, split_points, out_dir, media = 'video'):
   """
   split video to different parts containing video or audio only
   """
-  makeNewDir(out_dir, remove_existing = True)
+  make_new_dir(out_dir, remove_existing = True)
   count = 0
   split_list = pd.DataFrame(columns=['clip_id', 'start', 'end', 'path'])
   fileext = filename.split(".")[-1] if media == 'video' else 'wav'
@@ -259,7 +214,7 @@ def videoChop(filename, split_points, out_dir, media = 'video'):
 
 def audioChop(filename, split_points, out_dir, silence_removal = True):
     """chop audio, normalise and remove silence part"""
-    makeNewDir(out_dir, remove_existing=True)
+    make_new_dir(out_dir, remove_existing=True)
     count = 0
     count_valid = 0
     split_list = pd.DataFrame(columns=['clip_id', 'start', 'end', 'path'])
@@ -325,7 +280,7 @@ def audioPreprocess(sound, norm = -20, silence_removal = True):
     return out
 
 def getSplitPoints(file_name, out_dir):
-  makeNewDir(out_dir, remove_existing = False)
+  make_new_dir(out_dir, remove_existing = False)
   cmd = locateExe('scene_filter.sh') + " '" + file_name + "' " + " '" + out_dir + "'"
   #print(cmd)
   status,res,err = runExternal(cmd)
@@ -345,12 +300,12 @@ def autoVideoChop(file_name, out_dir):
   """
   print('\n\nautoVideoChop start.')
   video_dir = os.path.join(out_dir, 'video','chop')
-  makeNewDir(video_dir, remove_existing = True)
+  make_new_dir(video_dir, remove_existing = True)
   #check if video has audio
   has_audio = hasAudio(file_name)
   if has_audio:
     audio_dir = os.path.join(out_dir, 'audio','chop')
-    makeNewDir(audio_dir, remove_existing = True)
+    make_new_dir(audio_dir, remove_existing = True)
   cmd = locateExe('scene_filter.sh') + " '" + file_name + "' " + " '" + out_dir + "'"
   status,res,err = runExternal(cmd)
   assert status==0,'Opps. ffmpeg error: {}'.format(err)
@@ -454,7 +409,7 @@ def sceneAugment(input_, output_, quality_range = [0,],
     input_ids = [0,]
     
   else:
-    raise ValueError, "Input {} not recognised".format(input_)
+    raise ValueError("Input {} not recognised".format(input_))
   input_list = []
   output_list = []
   clip_id = []
@@ -497,7 +452,7 @@ def sceneAugment(input_, output_, quality_range = [0,],
     output_list = [output_]
   else:
     multi = True
-    makeNewDir(output_, remove_existing = False) #assume output is a dir
+    make_new_dir(output_, remove_existing = False) #assume output is a dir
     log = pd.DataFrame(columns=('clip_name','path', 'clip_id'))
     log['clip_name'] = [in_.replace(parent_dir + '/','') for in_ in input_list]
     log['path'] = [out_.replace(output_ + '/','') for out_ in output_list]
@@ -538,7 +493,7 @@ def audioAugment(input_, output_, quality_range = [1,],
     input_ids = [0,]
     
   else:
-    raise ValueError, "Input {} not recognised".format(input_)
+    raise ValueError("Input {} not recognised".format(input_))
   input_list = []
   output_list = []
   clip_id = []
@@ -577,7 +532,7 @@ def audioAugment(input_, output_, quality_range = [1,],
     output_list = [output_]
   else:
     multi = True
-    makeNewDir(output_, remove_existing = False) #assume output is a dir
+    make_new_dir(output_, remove_existing = False) #assume output is a dir
     log = pd.DataFrame(columns=('clip_name','path', 'clip_id'))
     log['clip_name'] = [in_.replace(parent_dir + '/','') for in_ in input_list]
     log['path'] = [out_.replace(output_ + '/','') for out_ in output_list]
@@ -727,7 +682,7 @@ class FeatExtractor(object):
   def __extract(self, in_file, out_file):
     if self.verbose: print('Process {}'.format(in_file))
     out_dir = os.path.dirname(out_file)
-    makeNewDir(out_dir, remove_existing = False)
+    make_new_dir(out_dir, remove_existing = False)
     try:
       self.video.setup(in_file)
     except Exception as e:
@@ -765,7 +720,7 @@ class FeatExtractor(object):
       input_tab.rename(columns={'path':'clip'}, inplace=True)
       parent_dir = os.path.dirname(input_)
       input_list = [os.path.join(parent_dir, fname) for fname in input_names]
-      makeNewDir(output_, remove_existing = False) #assume output is a dir
+      make_new_dir(output_, remove_existing = False) #assume output is a dir
       output_names = [x.replace('.','_')+'.npy' for x in input_names]
       output_list = [os.path.join(output_, x) for x in output_names]
       if logging: paths = []
@@ -775,7 +730,7 @@ class FeatExtractor(object):
       if output_.endswith('.npy'):
         output_list = [output_,]
       else:
-        makeNewDir(output_, remove_existing = False) #assume output is a dir
+        make_new_dir(output_, remove_existing = False) #assume output is a dir
         output_list = [os.path.join(output_, os.path.basename(input_).replace('.','_')),]
     drop_list = []
     for i, (in_file, out_file) in enumerate(zip(input_list, output_list)):
@@ -824,7 +779,7 @@ class audioMFCC(object):
       input_tab.rename(columns={'path':'clip'}, inplace=True)
       parent_dir = os.path.dirname(input_)
       input_list = [os.path.join(parent_dir, fname) for fname in input_names]
-      makeNewDir(output_, remove_existing = False) #assume output is a dir
+      make_new_dir(output_, remove_existing = False) #assume output is a dir
       output_names = [x.replace('.','_')+'.npy' for x in input_names]
       output_list = [os.path.join(output_, x) for x in output_names]
       if logging: input_tab['path'] = output_names
@@ -834,7 +789,7 @@ class audioMFCC(object):
       if output_.endswith('.npy'):
         output_list = [output_,]
       else:
-        makeNewDir(output_, remove_existing = False) #assume output is a dir
+        make_new_dir(output_, remove_existing = False) #assume output is a dir
         output_list = [os.path.join(output_, os.path.basename(input_).replace('.','_')),]
     # with futures.ThreadPoolExecutor(self.nworkers) as executor:
     #   results = executor.map(self._extract, zip(input_list, output_list))
